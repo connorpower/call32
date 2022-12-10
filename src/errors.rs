@@ -14,7 +14,7 @@ pub enum Error {
     #[error("unexpected win32 error in {function}. {context}")]
     Unexpected {
         /// The name of the function which failed. Typically provided to
-        /// [`crate::chk`].
+        /// [`call!`](crate::call).
         function: &'static str,
         /// Inner error context. Implements [`Display`](std::fmt::Display) to
         /// conveniently print any Win32 error codes or system error messages

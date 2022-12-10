@@ -1,6 +1,5 @@
 //! Windows process and COM management.
 
-use crate::chk;
 use ::std::{
     cell::RefCell,
     rc::{Rc, Weak},
@@ -41,7 +40,7 @@ thread_local! {
 /// # Usage
 ///
 /// ```rust
-/// use ::win32::proc::ComLibraryHandle;
+/// use ::call32::ComLibraryHandle;
 ///
 /// {
 ///     let _handle = ComLibraryHandle::acquire();
@@ -67,8 +66,7 @@ impl ComLibraryHandle {
                 h
             } else {
                 drop(cell_ref);
-                ::tracing::debug!("Initializing COM library (apartment-threaded)");
-                chk!(res; CoInitializeEx(None, COINIT_APARTMENTTHREADED )).unwrap();
+                crate::call!(res; CoInitializeEx(None, COINIT_APARTMENTTHREADED )).unwrap();
                 let handle = Rc::new(Self(()));
                 cell.replace(Rc::downgrade(&handle));
                 handle
@@ -79,7 +77,6 @@ impl ComLibraryHandle {
 
 impl Drop for ComLibraryHandle {
     fn drop(&mut self) {
-        ::tracing::debug!("Uninitializing COM library");
         unsafe {
             CoUninitialize();
         }

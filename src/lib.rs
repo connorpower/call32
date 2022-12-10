@@ -1,6 +1,24 @@
-//! Utilities for invoking native Win32 API in a safe & ergonomic way.
+#![doc = include_str!("../README.md")]
+#![deny(rust_2018_idioms)]
+#![warn(missing_docs)]
+#![warn(rustdoc::missing_crate_level_docs)]
+#![cfg_attr(
+    doc,
+    warn(
+        rustdoc::bare_urls,
+        rustdoc::broken_intra_doc_links,
+        rustdoc::invalid_codeblock_attributes,
+        rustdoc::invalid_rust_codeblocks,
+        rustdoc::missing_crate_level_docs,
+    )
+)]
+#![cfg_attr(nightly, feature(doc_cfg))]
+#![cfg_attr(nightly, doc(cfg_hide(doc)))]
 
-use crate::errors::*;
+mod errors;
+mod proc;
+pub use errors::*;
+pub use proc::*;
 
 use ::std::num::{NonZeroIsize, NonZeroU16};
 use ::windows::{
@@ -22,23 +40,22 @@ use ::windows::{
 /// ### Usage
 ///
 /// ```
-/// use ::win32::invoke;
+/// use ::call32::call;
 /// use ::windows::Win32::System::LibraryLoader::GetModuleHandleA;
 ///
-/// let _module = invoke::chk!(res; GetModuleHandleA(None)).unwrap();
+/// let _module = call!(res; GetModuleHandleA(None)).unwrap();
 /// ```
 #[macro_export]
-macro_rules! chk {
+macro_rules! call {
     ($check:expr ; $fn:ident ( $( $param:expr),* ) ) => {
         ::paste::paste! {
-            $crate::invoke:: [< check_ $check >] (
+            $crate:: [< check_ $check >] (
                 || unsafe { [<$fn>]( $( $param, )* ) } ,
                 ::std::stringify!([<$fn>])
             )
         }
     }
 }
-pub use chk;
 
 macro_rules! impl_nonzero {
     ($num:ty => $nonzero:ty) => {
@@ -48,8 +65,8 @@ macro_rules! impl_nonzero {
             #[doc = "the result of `F` to a crate error complete with system error"]
             #[doc = "message context."]
             #[doc = ""]
-            #[doc = "Can be used with [crate::chk] by specifying `nonzero_" $num "`"]
-            #[doc = "as the type of check, e.g.: `chk!(nonzero_" $num "; ...)`"]
+            #[doc = "Can be used with [`call!`](crate::call) by specifying `nonzero_" $num "`"]
+            #[doc = "as the type of check, e.g.: `call!(nonzero_" $num "; ...)`"]
             pub fn [<check_nonzero_ $num>]<F>(f: F, f_name: &'static str) -> Result<$nonzero>
             where
                 F: FnOnce() -> $num,
@@ -67,8 +84,8 @@ impl_nonzero!(isize => NonZeroIsize);
 /// and not by return type or output params. The last error is cleared
 /// immediately before invoking the function.
 ///
-/// Can be used with [crate::chk] by specifying `last_err` as the type of check,
-/// e.g.: `chk!(last_err; ...)`
+/// Can be used with [`call!`](crate::call) by specifying `last_err` as the type
+/// of check, e.g.: `call!(last_err; ...)`
 pub fn check_last_err<F, R>(f: F, f_name: &'static str) -> Result<R>
 where
     F: FnOnce() -> R,
@@ -90,8 +107,8 @@ where
 /// Invokes a Win32 API which defines success by bool return values. Maps the
 /// result of `F` to an error on failure.
 ///
-/// Can be used with [crate::chk] by specifying `bool` as the type of check,
-/// e.g.: `chk!(bool; ...)`
+/// Can be used with [`call!`](crate::call) by specifying `bool` as the type of
+/// check, e.g.: `call!(bool; ...)`
 pub fn check_bool<F>(f: F, f_name: &'static str) -> Result<()>
 where
     F: FnOnce() -> BOOL,
@@ -102,8 +119,8 @@ where
 /// Invokes a Win32 API which defines success by Win32 results. Maps
 /// the result of `F` to an error on failure.
 ///
-/// Can be used with [crate::chk] by specifying `res` as the type of check,
-/// e.g.: `chk!(res; ...)`
+/// Can be used with [`call!`](crate::call) by specifying `res` as the type of
+/// check, e.g.: `call!(res; ...)`
 pub fn check_res<F, V>(f: F, f_name: &'static str) -> Result<V>
 where
     F: FnOnce() -> Win32Result<V>,
@@ -117,8 +134,8 @@ where
 /// Invokes a Win32 API which defines success by non-zero pointers. Maps
 /// the result of `F` to an error on failure.
 ///
-/// Can be used with [crate::chk] by specifying `ptr` as the type of check,
-/// e.g.: `chk!(ptr; ...)`
+/// Can be used with [`call!`](crate::call) by specifying `ptr` as the type of
+/// check, e.g.: `call!(ptr; ...)`
 pub fn check_ptr<F, P>(f: F, f_name: &'static str) -> Result<P>
 where
     F: FnOnce() -> P,
