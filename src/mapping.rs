@@ -252,43 +252,127 @@ where
     })
 }
 
-/// Invokes a Win32 API which defines success by non-zero pointers. Maps
-/// the result of `F` to an error on failure.
+/// Calls Win32 API which defines success with a non-zero "pointer" return type.
 ///
-/// Can be used with [`call!`](crate::call) by specifying `ptr` as the type of
-/// mapping, e.g.: `call!(ptr; ...)`
-/// TODO: Tidy
-pub fn map_ptr<F, P>(f: F, f_name: &'static str) -> Result<P>
+/// The Win32 API has many types that are conceptually pointers, but the Rust
+/// language projection in the [`::windows`][] crate unfortunately has no common
+/// method across all Win32 pointers to determine if they're valid. To that end,
+/// [`::call32`][] defines the [`Win32Ptr`][] trait and provides an
+/// implementation for all the common types:
+///
+/// * [`HWND`][]: The window handle for a desktop window.
+/// * [`PSTR`][]: A pointer to a null-terminated string of 8-bit Windows (ANSI)
+///   characters.
+/// * [`PWSTR`][]: A pointer to a null-terminated string of 16-bit Unicode
+///   characters.
+/// * [`PCSTR`][]: A pointer to a constant null-terminated string of 8-bit
+///   Windows (ANSI) characters.
+/// * [`PCWSTR`][]: A pointer to a constant null-terminated string of 16-bit
+///   Unicode characters.
+///
+/// If an error is detected, additional context will be automatically retrieved
+/// from the system by calling [`GetLastError`] and associating the context with
+/// the returned `Err`.
+///
+/// This mapping can be used with the [`call!`][] macro by specifying the
+/// appropriate mapping name, e.g.: `call!(ptr; ...)`.
+///
+/// # Parameters
+///
+/// - `function`: A closure to run. This is typically a Win32 API function
+///   within an unsafe block.
+/// - `source_hint`: A debugging hint to help identify the source of an error
+///   should one occur. This is typically just the Win32 function name as a
+///   string. The macro [`call!`][] automatically extracts the function name
+///   from the macro arguments to use as the value for this source hint.
+///
+/// # Usage
+///
+/// ```rust
+/// # use ::windows::{w, core::PCWSTR};
+/// use ::call32::{call, mapping::map_ptr};
+/// # unsafe fn Win32APICall() -> PCWSTR { w!("Hello, Redmond.").into() }
+///
+/// // Use as a standalone function:
+/// let result = map_ptr(|| unsafe {
+///     Win32APICall()
+/// }, "Win32APICall");
+///
+/// assert!(result.is_ok());
+///
+///
+/// // Or, more commonly, use with the `call!` macro:
+/// let result = call!(ptr; Win32APICall());
+///
+/// assert!(result.is_ok());
+/// ```
+///
+/// [`::call32`]: crate
+/// [`::windows`]: windows
+/// [`call!`]: crate::call
+/// [`GetLastError`]: https://learn.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-getlasterror
+/// [`HWND`]: windows::Win32::Foundation::HWND
+/// [`PSTR`]: windows::core::PSTR
+/// [`PWSTR`]: windows::core::PSTR
+/// [`PCSTR`]: windows::core::PSTR
+/// [`PCWSTR`]: windows::core::PSTR
+pub fn map_ptr<F, R>(function: F, source_hint: &'static str) -> Result<R>
 where
-    F: FnOnce() -> P,
-    P: Win32Pointer,
+    F: FnOnce() -> R,
+    R: Win32Ptr,
 {
-    let ptr = f();
+    let ptr = function();
 
     if ptr.is_null() {
-        Err(get_last_err(f_name))
+        Err(get_last_err(source_hint))
     } else {
         Ok(ptr)
     }
 }
 
-/// A common trait implemented for Win32 pointer types.
-pub trait Win32Pointer {
+/// A blanket trait implemented for Win32 pointer types to provide a blanket
+/// [`is_null()`] method for checking pointer validity.
+///
+/// The Win32 API has many types that are conceptually pointers, but the Rust
+/// language projection in the [`::windows`][] crate unfortunately has no common
+/// method across all Win32 pointers to determine if they're valid. To that end,
+/// [`::call32`][] defines the [`Win32Ptr`][] trait and provides an
+/// implementation for all the common types:
+///
+/// * [`HWND`][]: The window handle for a desktop window.
+/// * [`PSTR`][]: A pointer to a null-terminated string of 8-bit Windows (ANSI)
+///   characters.
+/// * [`PWSTR`][]: A pointer to a null-terminated string of 16-bit Unicode
+///   characters.
+/// * [`PCSTR`][]: A pointer to a constant null-terminated string of 8-bit
+///   Windows (ANSI) characters.
+/// * [`PCWSTR`][]: A pointer to a constant null-terminated string of 16-bit
+///   Unicode characters.
+///
+/// [`::call32`]: crate
+/// [`::windows`]: windows
+/// [`HWND`]: windows::Win32::Foundation::HWND
+/// [`PSTR`]: windows::core::PSTR
+/// [`PWSTR`]: windows::core::PSTR
+/// [`PCSTR`]: windows::core::PSTR
+/// [`PCWSTR`]: windows::core::PSTR
+/// [`is_null()`]: Win32Ptr::is_null
+pub trait Win32Ptr {
     /// Predicate method which indicates whether the pointer should be
     /// considered a null pointer.
     fn is_null(&self) -> bool;
 }
 
 macro_rules! impl_win32_ptr {
-    ($type:ty; wrapped_is_null) => {
-        impl Win32Pointer for $type {
+    ($type:ty; use_inner_is_null) => {
+        impl Win32Ptr for $type {
             fn is_null(&self) -> bool {
                 self.0.is_null()
             }
         }
     };
-    ($type:ty; int_val) => {
-        impl Win32Pointer for $type {
+    ($type:ty; use_int_val) => {
+        impl Win32Ptr for $type {
             fn is_null(&self) -> bool {
                 self.0 == 0 as _
             }
@@ -296,8 +380,8 @@ macro_rules! impl_win32_ptr {
     };
 }
 
-impl_win32_ptr!(HWND; int_val);
-impl_win32_ptr!(PSTR; wrapped_is_null);
-impl_win32_ptr!(PWSTR; wrapped_is_null);
-impl_win32_ptr!(PCSTR; wrapped_is_null);
-impl_win32_ptr!(PCWSTR; wrapped_is_null);
+impl_win32_ptr!(HWND; use_int_val);
+impl_win32_ptr!(PSTR; use_inner_is_null);
+impl_win32_ptr!(PWSTR; use_inner_is_null);
+impl_win32_ptr!(PCSTR; use_inner_is_null);
+impl_win32_ptr!(PCWSTR; use_inner_is_null);
