@@ -15,15 +15,15 @@
 #![cfg_attr(nightly, feature(doc_cfg))]
 #![cfg_attr(nightly, doc(cfg_hide(doc)))]
 
-pub mod check;
 pub mod com;
 mod errors;
+pub mod mapping;
 pub use errors::*;
 
-/// Invokes a Win32 function with the provided argument and checks the return
-/// value for success, or creates a crate error with context.
+/// Invokes a Win32 function with the provided argument and maps the return
+/// value into a Result with additional context.
 ///
-/// The supported values for check are:
+/// The supported values for mapping are:
 /// - nonzero_isize
 /// - nonzero_u16
 /// - last_err
@@ -41,9 +41,9 @@ pub use errors::*;
 /// ```
 #[macro_export]
 macro_rules! call {
-    ($check:expr ; $fn:ident ( $( $param:expr),* ) ) => {
+    ($mapping:expr ; $fn:ident ( $( $param:expr),* ) ) => {
         ::paste::paste! {
-            $crate::check:: [< check_ $check >] (
+            $crate::mapping:: [< map_ $mapping >] (
                 || unsafe { [<$fn>]( $( $param, )* ) } ,
                 ::std::stringify!([<$fn>])
             )

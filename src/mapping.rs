@@ -1,6 +1,6 @@
-//! A collection of functions which invoke Win32 API and check their return
-//! values for success, mapping to a `Result` type with additional context in
-//! the case of an unsuccessful call.
+//! A collection of functions which invoke Win32 API and map their return
+//! values to a `Result` type with additional context in the case of an
+//! unsuccessful call.
 
 use crate::{get_last_err, Error, Result};
 use ::std::num::{
@@ -22,7 +22,7 @@ macro_rules! impl_nonzero {
             #[doc = "otherwise maps the result of `F` to a crate error"        ]
             #[doc = "complete with system error message context. This function"]
             #[doc = "be used with [`call!`][] by specifying the appropriate"   ]
-            #[doc = "check name, e.g.: `call!(nonzero_" $num "; ...)`"         ]
+            #[doc = "mapping name, e.g.: `call!(nonzero_" $num "; ...)`"       ]
             #[doc = ""                                                         ]
             #[doc = "# Parameters"                                             ]
             #[doc = ""                                                         ]
@@ -39,26 +39,26 @@ macro_rules! impl_nonzero {
             #[doc = "# Usage"                                                  ]
             #[doc = ""                                                         ]
             #[doc = "```rust"                                                  ]
-            #[doc = "use ::call32::{call, check::check_nonzero_" $num "};"     ]
+            #[doc = "use ::call32::{call, mapping::map_nonzero_" $num "};"     ]
             #[doc = "# unsafe fn Win32APICall() -> " $num " {"                 ]
-            #[doc = "#     Default::default() + (1 as _)"                      ]
+            #[doc = "#     1 as " $num ""                                      ]
             #[doc = "# }"                                                      ]
             #[doc = ""                                                         ]
             #[doc = "// Use as a standalone function:"                         ]
-            #[doc = "let result = check_nonzero_" $num "(unsafe {"             ]
+            #[doc = "let result = map_nonzero_" $num "(|| unsafe {"            ]
             #[doc = "    Win32APICall()"                                       ]
             #[doc = "}, \"Win32APICall\");"                                    ]
             #[doc = "assert!(result.is_ok());"                                 ]
             #[doc = ""                                                         ]
             #[doc = "// Or, more commonly, use with the `call!` macro:"        ]
-            #[doc = "let result = call!(non_zero_" $num "; Win32APICall());"   ]
+            #[doc = "let result = call!(nonzero_" $num "; Win32APICall());"   ]
             #[doc = "assert!(result.is_ok());"                                 ]
             #[doc = "```"                                                      ]
             #[doc = ""                                                         ]
             #[doc = "[`" $num "`]: " $num ""                                   ]
             #[doc = "[`" $nonzero "`]: std::num::" $nonzero ""                 ]
             #[doc = "[`call!`]: crate::call"                                   ]
-            pub fn [<check_nonzero_ $num>]<F>(function: F, source_hint: &'static str) -> Result<$nonzero>
+            pub fn [<map_nonzero_ $num>]<F>(function: F, source_hint: &'static str) -> Result<$nonzero>
             where
                 F: FnOnce() -> $num,
             {
@@ -84,8 +84,8 @@ impl_nonzero!(isize => NonZeroIsize);
 /// immediately before invoking the function.
 ///
 /// Can be used with [`call!`](crate::call) by specifying `last_err` as the type
-/// of check, e.g.: `call!(last_err; ...)`
-pub fn check_last_err<F, R>(f: F, f_name: &'static str) -> Result<R>
+/// of mapping, e.g.: `call!(last_err; ...)`
+pub fn map_last_err<F, R>(f: F, f_name: &'static str) -> Result<R>
 where
     F: FnOnce() -> R,
 {
@@ -107,8 +107,8 @@ where
 /// result of `F` to an error on failure.
 ///
 /// Can be used with [`call!`](crate::call) by specifying `bool` as the type of
-/// check, e.g.: `call!(bool; ...)`
-pub fn check_bool<F>(f: F, f_name: &'static str) -> Result<()>
+/// mapping, e.g.: `call!(bool; ...)`
+pub fn map_bool<F>(f: F, f_name: &'static str) -> Result<()>
 where
     F: FnOnce() -> BOOL,
 {
@@ -119,8 +119,8 @@ where
 /// the result of `F` to an error on failure.
 ///
 /// Can be used with [`call!`](crate::call) by specifying `res` as the type of
-/// check, e.g.: `call!(res; ...)`
-pub fn check_res<F, V>(f: F, f_name: &'static str) -> Result<V>
+/// mapping, e.g.: `call!(res; ...)`
+pub fn map_res<F, V>(f: F, f_name: &'static str) -> Result<V>
 where
     F: FnOnce() -> Win32Result<V>,
 {
@@ -134,8 +134,8 @@ where
 /// the result of `F` to an error on failure.
 ///
 /// Can be used with [`call!`](crate::call) by specifying `ptr` as the type of
-/// check, e.g.: `call!(ptr; ...)`
-pub fn check_ptr<F, P>(f: F, f_name: &'static str) -> Result<P>
+/// mapping, e.g.: `call!(ptr; ...)`
+pub fn map_ptr<F, P>(f: F, f_name: &'static str) -> Result<P>
 where
     F: FnOnce() -> P,
     P: Win32Pointer,
