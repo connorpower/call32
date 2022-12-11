@@ -26,10 +26,10 @@ macro_rules! impl_nonzero {
             #[doc = ""                                                         ]
             #[doc = "# Parameters"                                             ]
             #[doc = ""                                                         ]
-            #[doc = " - `function`: an `FnOnce` closure to run which returns a"]
+            #[doc = " - `function`: A closure to run which returns a"          ]
             #[doc = "   [`" $num "`] result. This is typically an unsafe Win32"]
             #[doc = "   API function within an unsafe block."                  ]
-            #[doc = " - `source_hint`: a debugging hint to help identify the"  ]
+            #[doc = " - `source_hint`: A debugging hint to help identify the"  ]
             #[doc = "   source of an error should one occur. This is typically"]
             #[doc = "   just the Win32 function name as a string. The macro"   ]
             #[doc = "   [`call!`] automatically extracts the function name"    ]
@@ -48,10 +48,13 @@ macro_rules! impl_nonzero {
             #[doc = "let result = map_nonzero_" $num "(|| unsafe {"            ]
             #[doc = "    Win32APICall()"                                       ]
             #[doc = "}, \"Win32APICall\");"                                    ]
+            #[doc = ""                                                         ]
             #[doc = "assert!(result.is_ok());"                                 ]
             #[doc = ""                                                         ]
+            #[doc = ""                                                         ]
             #[doc = "// Or, more commonly, use with the `call!` macro:"        ]
-            #[doc = "let result = call!(nonzero_" $num "; Win32APICall());"   ]
+            #[doc = "let result = call!(nonzero_" $num "; Win32APICall());"    ]
+            #[doc = ""                                                         ]
             #[doc = "assert!(result.is_ok());"                                 ]
             #[doc = "```"                                                      ]
             #[doc = ""                                                         ]
@@ -79,25 +82,65 @@ impl_nonzero!(i32 => NonZeroI32);
 impl_nonzero!(i64 => NonZeroI64);
 impl_nonzero!(isize => NonZeroIsize);
 
-/// Invokes a Win32 API which indicates failure by setting the last error code
-/// and not by return type or output params. The last error is cleared
-/// immediately before invoking the function.
+/// Calls Win32 API which defines success by directly setting the thread's
+/// last-error value.
 ///
-/// Can be used with [`call!`](crate::call) by specifying `last_err` as the type
-/// of mapping, e.g.: `call!(last_err; ...)`
-pub fn map_last_err<F, R>(f: F, f_name: &'static str) -> Result<R>
+/// The return type of the provided function is mapped to a crate [`Result`],
+/// which will be `Ok` if the thread's last-error code was still `0` after the
+/// function call, and `Err` if a non-zero error code was found. The last-error
+/// code is usually retrieved via [`GetLastError`]. As is best practice for
+/// these types of function, any current error flag is cleared by calling
+/// [`SetLastError`] with `0` immediately before calling the function.
+///
+/// This mapping can be used with the [`call!`][] macro by specifying the
+/// appropriate mapping name, e.g.: `call!(last_err; ...)`.
+///
+/// # Parameters
+///
+/// - `function`: A closure to run. This is typically an unsafe Win32 API
+///   function within an unsafe block.
+/// - `source_hint`: A debugging hint to help identify the source of an error
+///   should one occur. This is typically just the Win32 function name as a
+///   string. The macro [`call!`] automatically extracts the function name from
+///   the macro arguments to use as the value for this source hint.
+///
+/// # Usage
+///
+/// ```rust
+/// use ::call32::{call, mapping::map_last_err};
+/// # unsafe fn Win32APICall() -> isize { 0 }
+///
+/// // Use as a standalone function:
+/// let result = map_last_err(|| unsafe {
+///     Win32APICall()
+/// }, "Win32APICall");
+///
+/// assert!(result.is_ok());
+///
+///
+/// // Or, more commonly, use with the `call!` macro:
+/// let result = call!(last_err; Win32APICall());
+///
+/// assert!(result.is_ok());
+/// ```
+///
+/// [`call!`]: crate::call
+/// [`Result`]: crate::Result
+/// [`GetLastError`]: https://learn.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-getlasterror
+/// [`SetLastError`]: https://learn.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-setlasterror
+pub fn map_last_err<F, R>(function: F, source_hint: &'static str) -> Result<R>
 where
     F: FnOnce() -> R,
 {
     unsafe { SetLastError(WIN32_ERROR(0)) };
-    let res = f();
+    let res = function();
     let last_err = unsafe { GetLastError() };
 
     if last_err.is_ok() {
         Ok(res)
     } else {
         Err(Error::Unexpected {
-            function: f_name,
+            function: source_hint,
             context: last_err.to_hresult().into(),
         })
     }
