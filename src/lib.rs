@@ -24,12 +24,12 @@ pub use errors::*;
 /// value into a Result with additional context.
 ///
 /// The supported values for mapping are:
-/// - nonzero_isize
-/// - nonzero_u16
-/// - last_err
-/// - hwnd
-/// - bool
-/// - result
+/// - map_nonzero_isize
+/// - map_nonzero_u16
+/// - map_last_err
+/// - map_hwnd
+/// - map_bool
+/// - map_result
 ///
 /// ### Usage
 ///
@@ -37,13 +37,13 @@ pub use errors::*;
 /// use ::call32::call;
 /// use ::windows::Win32::System::LibraryLoader::GetModuleHandleA;
 ///
-/// let _module = call!(result; GetModuleHandleA(None)).unwrap();
+/// let _module = call!(map_result; GetModuleHandleA(None)).unwrap();
 /// ```
 #[macro_export]
 macro_rules! call {
     ($mapping:expr ; $fn:ident ( $( $param:expr),* ) ) => {
         ::paste::paste! {
-            $crate::mappings:: [< map_ $mapping >] (
+            $crate::mappings:: [< $mapping >] (
                 || unsafe { [<$fn>]( $( $param, )* ) } ,
                 ::std::stringify!([<$fn>])
             )

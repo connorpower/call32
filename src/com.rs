@@ -59,7 +59,7 @@ impl ComLibraryHandle {
                 h
             } else {
                 drop(cell_ref);
-                crate::call!(result; CoInitializeEx(None, COINIT_APARTMENTTHREADED )).unwrap();
+                crate::call!(map_result; CoInitializeEx(None, COINIT_APARTMENTTHREADED )).unwrap();
                 let handle = Rc::new(Self(()));
                 cell.replace(Rc::downgrade(&handle));
                 handle

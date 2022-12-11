@@ -22,7 +22,7 @@ macro_rules! impl_nonzero {
             #[doc = "otherwise maps the result of `F` to a crate error"        ]
             #[doc = "complete with system error message context. This function"]
             #[doc = "be used with [`call!`][] by specifying the appropriate"   ]
-            #[doc = "mapping name, e.g.: `call!(nonzero_" $num "; ...)`"       ]
+            #[doc = "mapping name, e.g.: `call!(map_nonzero_" $num "; ...)`"   ]
             #[doc = ""                                                         ]
             #[doc = "# Parameters"                                             ]
             #[doc = ""                                                         ]
@@ -53,7 +53,7 @@ macro_rules! impl_nonzero {
             #[doc = ""                                                         ]
             #[doc = ""                                                         ]
             #[doc = "// Or, more commonly, use with the `call!` macro:"        ]
-            #[doc = "let result = call!(nonzero_" $num "; Win32APICall());"    ]
+            #[doc = "let result = call!(map_nonzero_" $num "; Win32APICall());"]
             #[doc = ""                                                         ]
             #[doc = "assert!(result.is_ok());"                                 ]
             #[doc = "```"                                                      ]
@@ -93,7 +93,7 @@ impl_nonzero!(isize => NonZeroIsize);
 /// [`SetLastError`] with `0` immediately before calling the function.
 ///
 /// This mapping can be used with the [`call!`][] macro by specifying the
-/// appropriate mapping name, e.g.: `call!(last_err; ...)`.
+/// appropriate mapping name, e.g.: `call!(map_last_err; ...)`.
 ///
 /// # Parameters
 ///
@@ -119,7 +119,7 @@ impl_nonzero!(isize => NonZeroIsize);
 ///
 ///
 /// // Or, more commonly, use with the `call!` macro:
-/// let result = call!(last_err; Win32APICall());
+/// let result = call!(map_last_err; Win32APICall());
 ///
 /// assert!(result.is_ok());
 /// ```
@@ -155,7 +155,7 @@ where
 /// context with the returned `Err`.
 ///
 /// This mapping can be used with the [`call!`][] macro by specifying the
-/// appropriate mapping name, e.g.: `call!(bool; ...)`.
+/// appropriate mapping name, e.g.: `call!(map_bool; ...)`.
 ///
 /// # Parameters
 ///
@@ -182,7 +182,7 @@ where
 ///
 ///
 /// // Or, more commonly, use with the `call!` macro:
-/// let result = call!(bool; Win32APICall());
+/// let result = call!(map_bool; Win32APICall());
 ///
 /// assert!(result.is_ok());
 /// ```
@@ -207,7 +207,7 @@ where
 /// the returned `Err`.
 ///
 /// This mapping can be used with the [`call!`][] macro by specifying the
-/// appropriate mapping name, e.g.: `call!(result; ...)`.
+/// appropriate mapping name, e.g.: `call!(map_result; ...)`.
 ///
 /// # Parameters
 ///
@@ -234,7 +234,7 @@ where
 ///
 ///
 /// // Or, more commonly, use with the `call!` macro:
-/// let result = call!(result; Win32APICall());
+/// let result = call!(map_result; Win32APICall());
 ///
 /// assert!(result.is_ok());
 /// ```
@@ -252,7 +252,8 @@ where
     })
 }
 
-/// Calls Win32 API which defines success with a non-zero "pointer" return type.
+/// Calls Win32 API which defines success with a non-zero [`Win32Ptr`] return
+/// types.
 ///
 /// The Win32 API has many types that are conceptually pointers, but the Rust
 /// language projection in the [`::windows`][] crate unfortunately has no common
@@ -275,7 +276,7 @@ where
 /// the returned `Err`.
 ///
 /// This mapping can be used with the [`call!`][] macro by specifying the
-/// appropriate mapping name, e.g.: `call!(ptr; ...)`.
+/// appropriate mapping name, e.g.: `call!(map_ptr; ...)`.
 ///
 /// # Parameters
 ///
@@ -302,11 +303,12 @@ where
 ///
 ///
 /// // Or, more commonly, use with the `call!` macro:
-/// let result = call!(ptr; Win32APICall());
+/// let result = call!(map_ptr; Win32APICall());
 ///
 /// assert!(result.is_ok());
 /// ```
 ///
+/// [`Win32Ptr`]: Win32Ptr
 /// [`::call32`]: crate
 /// [`::windows`]: windows
 /// [`call!`]: crate::call
