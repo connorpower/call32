@@ -85,7 +85,7 @@ impl_nonzero!(isize => NonZeroIsize);
 /// Calls Win32 API which defines success by directly setting the thread's
 /// last-error value.
 ///
-/// The return type of the provided function is mapped to a crate [`Result`],
+/// The return type of the provided function is mapped to a `Result`,
 /// which will be `Ok` if the thread's last-error code was still `0` after the
 /// function call, and `Err` if a non-zero error code was found. The last-error
 /// code is usually retrieved via [`GetLastError`]. As is best practice for

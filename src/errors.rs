@@ -3,7 +3,7 @@
 use ::windows::core::{Error as Win32Error, HRESULT};
 
 /// Result type returned by functions that call into Win32 API.
-pub type Result<T> = ::std::result::Result<T, Error>;
+pub(crate) type Result<T> = ::std::result::Result<T, Error>;
 
 /// Error type for functions that call into Win32 API. The error attempts to
 /// pro-actively capture as much context as possible (error codes, system error
