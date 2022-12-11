@@ -1,6 +1,5 @@
-//! A collection of functions which invoke Win32 API and map their return
-//! values to a `Result` type with additional context in the case of an
-//! unsuccessful call.
+//! Mapping functions convert Win32 API return types into `Result`s with
+//! additional context in the case of an error.
 
 use crate::{get_last_err, Error, Result};
 use ::std::num::{
