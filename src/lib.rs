@@ -15,10 +15,9 @@
 #![cfg_attr(nightly, feature(doc_cfg))]
 #![cfg_attr(nightly, doc(cfg_hide(doc)))]
 
+pub mod com;
 mod errors;
-mod proc;
 pub use errors::*;
-pub use proc::*;
 
 use ::std::num::{NonZeroIsize, NonZeroU16};
 use ::windows::{
