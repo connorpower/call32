@@ -39,7 +39,7 @@ macro_rules! impl_nonzero {
             #[doc = "# Usage"                                                  ]
             #[doc = ""                                                         ]
             #[doc = "```rust"                                                  ]
-            #[doc = "use ::call32::{call, mapping::map_nonzero_" $num "};"     ]
+            #[doc = "use ::call32::{call, mappings::map_nonzero_" $num "};"     ]
             #[doc = "# unsafe fn Win32APICall() -> " $num " {"                 ]
             #[doc = "#     1 as " $num ""                                      ]
             #[doc = "# }"                                                      ]
@@ -107,7 +107,7 @@ impl_nonzero!(isize => NonZeroIsize);
 /// # Usage
 ///
 /// ```rust
-/// use ::call32::{call, mapping::map_last_err};
+/// use ::call32::{call, mappings::map_last_err};
 /// # unsafe fn Win32APICall() -> isize { 0 }
 ///
 /// // Use as a standalone function:
@@ -170,7 +170,7 @@ where
 ///
 /// ```rust
 /// # use ::windows::Win32::Foundation::BOOL;
-/// use ::call32::{call, mapping::map_bool};
+/// use ::call32::{call, mappings::map_bool};
 /// # unsafe fn Win32APICall() -> BOOL { BOOL(1) }
 ///
 /// // Use as a standalone function:
@@ -222,7 +222,7 @@ where
 ///
 /// ```rust
 /// # use ::windows::core::Result;
-/// use ::call32::{call, mapping::map_result};
+/// use ::call32::{call, mappings::map_result};
 /// # unsafe fn Win32APICall() -> Result<()> { Ok(()) }
 ///
 /// // Use as a standalone function:
@@ -290,7 +290,7 @@ where
 ///
 /// ```rust
 /// # use ::windows::{w, core::PCWSTR};
-/// use ::call32::{call, mapping::map_ptr};
+/// use ::call32::{call, mappings::map_ptr};
 /// # unsafe fn Win32APICall() -> PCWSTR { w!("Hello, Redmond.").into() }
 ///
 /// // Use as a standalone function:

@@ -17,7 +17,7 @@
 
 pub mod com;
 mod errors;
-pub mod mapping;
+pub mod mappings;
 pub use errors::*;
 
 /// Invokes a Win32 function with the provided argument and maps the return
@@ -43,7 +43,7 @@ pub use errors::*;
 macro_rules! call {
     ($mapping:expr ; $fn:ident ( $( $param:expr),* ) ) => {
         ::paste::paste! {
-            $crate::mapping:: [< map_ $mapping >] (
+            $crate::mappings:: [< map_ $mapping >] (
                 || unsafe { [<$fn>]( $( $param, )* ) } ,
                 ::std::stringify!([<$fn>])
             )
