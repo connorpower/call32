@@ -24,6 +24,18 @@ macro_rules! impl_nonzero {
             #[doc = "be used with [`call!`][] by specifying the appropriate"   ]
             #[doc = "check name, e.g.: `call!(nonzero_" $num "; ...)`"         ]
             #[doc = ""                                                         ]
+            #[doc = "# Parameters"                                             ]
+            #[doc = ""                                                         ]
+            #[doc = " - `function`: an `FnOnce` closure to run which returns a"]
+            #[doc = "   [`" $num "`] result. This is typically an unsafe Win32"]
+            #[doc = "   API function within an unsafe block."                  ]
+            #[doc = " - `source_hint`: a debugging hint to help identify the"  ]
+            #[doc = "   source of an error should one occur. This is typically"]
+            #[doc = "   just the Win32 function name as a string. The macro"   ]
+            #[doc = "   [`call!`] automatically extracts the function name"    ]
+            #[doc = "   from the macro arguments to use as the value for this" ]
+            #[doc = "   source hint."                                          ]
+            #[doc = ""                                                         ]
             #[doc = "# Usage"                                                  ]
             #[doc = ""                                                         ]
             #[doc = "```rust"                                                  ]
@@ -38,7 +50,7 @@ macro_rules! impl_nonzero {
             #[doc = "}, \"Win32APICall\");"                                    ]
             #[doc = "assert!(result.is_ok());"                                 ]
             #[doc = ""                                                         ]
-            #[doc = "// Or use together with the `call!` macro:"               ]
+            #[doc = "// Or, more commonly, use with the `call!` macro:"        ]
             #[doc = "let result = call!(non_zero_" $num "; Win32APICall());"   ]
             #[doc = "assert!(result.is_ok());"                                 ]
             #[doc = "```"                                                      ]
@@ -46,11 +58,11 @@ macro_rules! impl_nonzero {
             #[doc = "[`" $num "`]: " $num ""                                   ]
             #[doc = "[`" $nonzero "`]: std::num::" $nonzero ""                 ]
             #[doc = "[`call!`]: crate::call"                                   ]
-            pub fn [<check_nonzero_ $num>]<F>(f: F, f_name: &'static str) -> Result<$nonzero>
+            pub fn [<check_nonzero_ $num>]<F>(function: F, source_hint: &'static str) -> Result<$nonzero>
             where
                 F: FnOnce() -> $num,
             {
-                <$nonzero>::new(f()).ok_or_else(|| get_last_err(f_name))
+                <$nonzero>::new(function()).ok_or_else(|| get_last_err(source_hint))
             }
         }
     };
