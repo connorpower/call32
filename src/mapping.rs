@@ -27,8 +27,8 @@ macro_rules! impl_nonzero {
             #[doc = "# Parameters"                                             ]
             #[doc = ""                                                         ]
             #[doc = " - `function`: A closure to run which returns a"          ]
-            #[doc = "   [`" $num "`] result. This is typically an unsafe Win32"]
-            #[doc = "   API function within an unsafe block."                  ]
+            #[doc = "   [`" $num "`] result. This is typically a Win32 API"    ]
+            #[doc = "   function within an unsafe block."                      ]
             #[doc = " - `source_hint`: A debugging hint to help identify the"  ]
             #[doc = "   source of an error should one occur. This is typically"]
             #[doc = "   just the Win32 function name as a string. The macro"   ]
@@ -97,8 +97,8 @@ impl_nonzero!(isize => NonZeroIsize);
 ///
 /// # Parameters
 ///
-/// - `function`: A closure to run. This is typically an unsafe Win32 API
-///   function within an unsafe block.
+/// - `function`: A closure to run. This is typically an Win32 API function
+///   within an unsafe block.
 /// - `source_hint`: A debugging hint to help identify the source of an error
 ///   should one occur. This is typically just the Win32 function name as a
 ///   string. The macro [`call!`] automatically extracts the function name from
@@ -146,16 +146,58 @@ where
     }
 }
 
-/// Invokes a Win32 API which defines success by bool return values. Maps the
-/// result of `F` to an error on failure.
+/// Calls Win32 API which defines success by returning a [`BOOL`] value from the
+/// windows crate.
 ///
-/// Can be used with [`call!`](crate::call) by specifying `bool` as the type of
-/// mapping, e.g.: `call!(bool; ...)`
-pub fn map_bool<F>(f: F, f_name: &'static str) -> Result<()>
+/// The bool result is mapped into a `Result<(), Error>` for ergonomic error
+/// handling.  If an error is detected, additional context will be automatically
+/// retrieved from the system by calling [`GetLastError`] and associating the
+/// context with the returned `Err`.
+///
+/// This mapping can be used with the [`call!`][] macro by specifying the
+/// appropriate mapping name, e.g.: `call!(bool; ...)`.
+///
+/// # Parameters
+///
+/// - `function`: A closure to run. This is typically a Win32 API function
+///   within an unsafe block.
+/// - `source_hint`: A debugging hint to help identify the source of an error
+///   should one occur. This is typically just the Win32 function name as a
+///   string. The macro [`call!`] automatically extracts the function name from
+///   the macro arguments to use as the value for this source hint.
+///
+/// # Usage
+///
+/// ```rust
+/// # use ::windows::Win32::Foundation::BOOL;
+/// use ::call32::{call, mapping::map_bool};
+/// # unsafe fn Win32APICall() -> BOOL { BOOL(1) }
+///
+/// // Use as a standalone function:
+/// let result = map_bool(|| unsafe {
+///     Win32APICall()
+/// }, "Win32APICall");
+///
+/// assert!(result.is_ok());
+///
+///
+/// // Or, more commonly, use with the `call!` macro:
+/// let result = call!(bool; Win32APICall());
+///
+/// assert!(result.is_ok());
+/// ```
+///
+/// [`BOOL`]: windows::Win32::Foundation::BOOL
+/// [`call!`]: crate::call
+/// [`GetLastError`]: https://learn.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-getlasterror
+pub fn map_bool<F>(function: F, source_hint: &'static str) -> Result<()>
 where
     F: FnOnce() -> BOOL,
 {
-    f().ok().map_err(|_| get_last_err(f_name))
+    function().ok().map_err(|e| Error::Unexpected {
+        function: source_hint,
+        context: e,
+    })
 }
 
 /// Invokes a Win32 API which defines success by Win32 results. Maps
@@ -163,6 +205,7 @@ where
 ///
 /// Can be used with [`call!`](crate::call) by specifying `res` as the type of
 /// mapping, e.g.: `call!(res; ...)`
+/// TODO: Tidy
 pub fn map_res<F, V>(f: F, f_name: &'static str) -> Result<V>
 where
     F: FnOnce() -> Win32Result<V>,
@@ -178,6 +221,7 @@ where
 ///
 /// Can be used with [`call!`](crate::call) by specifying `ptr` as the type of
 /// mapping, e.g.: `call!(ptr; ...)`
+/// TODO: Tidy
 pub fn map_ptr<F, P>(f: F, f_name: &'static str) -> Result<P>
 where
     F: FnOnce() -> P,
