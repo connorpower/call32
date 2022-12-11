@@ -29,7 +29,7 @@ pub use errors::*;
 /// - last_err
 /// - hwnd
 /// - bool
-/// - res
+/// - result
 ///
 /// ### Usage
 ///
@@ -37,7 +37,7 @@ pub use errors::*;
 /// use ::call32::call;
 /// use ::windows::Win32::System::LibraryLoader::GetModuleHandleA;
 ///
-/// let _module = call!(res; GetModuleHandleA(None)).unwrap();
+/// let _module = call!(result; GetModuleHandleA(None)).unwrap();
 /// ```
 #[macro_export]
 macro_rules! call {
