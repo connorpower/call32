@@ -1,13 +1,13 @@
 //! Mapping functions convert Win32 API return types into `Result`s with
 //! additional context in the case of an error.
 
-use crate::{get_last_err, Error, Result};
+use crate::{Error, Result};
 use ::std::num::{
     NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroIsize, NonZeroU16, NonZeroU32,
     NonZeroU64, NonZeroU8, NonZeroUsize,
 };
 use ::windows::{
-    core::{Result as Win32Result, PCSTR, PCWSTR, PSTR, PWSTR},
+    core::{Error as Win32Error, Result as Win32Result, PCSTR, PCWSTR, PSTR, PWSTR},
     Win32::Foundation::{GetLastError, SetLastError, BOOL, HWND, WIN32_ERROR},
 };
 
@@ -64,7 +64,12 @@ macro_rules! impl_nonzero {
             where
                 F: FnOnce() -> $num,
             {
-                <$nonzero>::new(function()).ok_or_else(|| get_last_err(source_hint))
+                <$nonzero>::new(function()).ok_or_else(||
+                    Error::Unexpected {
+                        source_hint,
+                        underlying_error: Win32Error::from_win32(),
+                    }
+                )
             }
         }
     };
@@ -132,17 +137,15 @@ where
     F: FnOnce() -> R,
 {
     unsafe { SetLastError(WIN32_ERROR(0)) };
-    let res = function();
-    let last_err = unsafe { GetLastError() };
+    let result = function();
 
-    if last_err.is_ok() {
-        Ok(res)
-    } else {
-        Err(Error::Unexpected {
-            function: source_hint,
-            context: last_err.to_hresult().into(),
+    unsafe { GetLastError() }
+        .ok()
+        .map(|_| result)
+        .map_err(|underlying_error| Error::Unexpected {
+            source_hint,
+            underlying_error,
         })
-    }
 }
 
 /// Calls Win32 API which defines success by returning a
@@ -193,10 +196,12 @@ pub fn map_bool<F>(function: F, source_hint: &'static str) -> Result<()>
 where
     F: FnOnce() -> BOOL,
 {
-    function().ok().map_err(|e| Error::Unexpected {
-        function: source_hint,
-        context: e,
-    })
+    function()
+        .ok()
+        .map_err(|underlying_error| Error::Unexpected {
+            source_hint,
+            underlying_error,
+        })
 }
 
 /// Calls Win32 API which returns a [`::windows::core::Result<T>`] type.
@@ -245,9 +250,9 @@ pub fn map_result<F, R>(function: F, source_hint: &'static str) -> Result<R>
 where
     F: FnOnce() -> Win32Result<R>,
 {
-    function().map_err(|context| Error::Unexpected {
-        function: source_hint,
-        context,
+    function().map_err(|underlying_error| Error::Unexpected {
+        source_hint,
+        underlying_error,
     })
 }
 
@@ -325,7 +330,10 @@ where
     let ptr = function();
 
     if ptr.is_null() {
-        Err(get_last_err(source_hint))
+        Err(Error::Unexpected {
+            source_hint,
+            underlying_error: Win32Error::from_win32(),
+        })
     } else {
         Ok(ptr)
     }

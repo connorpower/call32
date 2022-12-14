@@ -11,31 +11,27 @@ pub(crate) type Result<T> = ::std::result::Result<T, Error>;
 #[derive(::thiserror::Error, Debug)]
 pub enum Error {
     /// An unexpected error occurred and was not handled internally.
-    #[error("unexpected win32 error in {function}. {context}")]
+    #[error("{source_hint}: unexpected win32 error. Caused by: {underlying_error}")]
     Unexpected {
-        /// The name of the function which failed. Typically provided to
-        /// [`call!`](crate::call).
-        function: &'static str,
-        /// Inner error context. Implements [`Display`](std::fmt::Display) to
-        /// conveniently print any Win32 error codes or system error messages
-        /// which were gathered at the point of the error.
-        context: Win32Error,
+        /// A hint as to to the error source. Often just the function name, but
+        /// it could be anything.  [`call!`](crate::call) will automatically
+        /// populate this field with the function name it is calling.
+        source_hint: &'static str,
+        /// The underlying Win32 [`Error`] which provides access to the error
+        /// code and message.
+        ///
+        /// [`Error`]: windows ::core::Win32Error;
+        underlying_error: Win32Error,
     },
 }
 
 impl Error {
-    /// Returns the underlying Win32 error code, if any.
-    pub fn code(&self) -> Option<HRESULT> {
+    /// Returns the underlying Win32 error code.
+    pub fn code(&self) -> HRESULT {
         match self {
-            Self::Unexpected { context, .. } => Some(context.code()),
+            Self::Unexpected {
+                underlying_error, ..
+            } => underlying_error.code(),
         }
-    }
-}
-
-/// Gets the last Win32 error (the Win32 equivalent of `errno`).
-pub(crate) fn get_last_err(f_name: &'static str) -> Error {
-    Error::Unexpected {
-        function: f_name,
-        context: Win32Error::from_win32(),
     }
 }
